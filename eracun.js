@@ -136,6 +136,8 @@ streznik.get('/kosarica', function(zahteva, odgovor) {
   });
 })
 
+
+
 // Vrni podrobnosti pesmi na računu
 var pesmiIzRacuna = function(racunId, callback) {
     pb.all("SELECT Track.TrackId AS stevilkaArtikla, 1 AS kolicina, \
@@ -149,22 +151,62 @@ var pesmiIzRacuna = function(racunId, callback) {
     Track.TrackId IN (SELECT InvoiceLine.TrackId FROM InvoiceLine, Invoice \
     WHERE InvoiceLine.InvoiceId = Invoice.InvoiceId AND Invoice.InvoiceId = " + racunId + ")",
     function(napaka, vrstice) {
-      console.log(vrstice);
+      //console.log(vrstice);
+      if (napaka) {
+        callback(false);
+      } else {
+        callback(vrstice);
+      }
     })
 }
+
+streznik.get('/psm', function(zahteva, odgovor) {
+  pesmiIzRacuna(410, function(pesmi) {
+    if (!pesmi)
+      odgovor.sendStatus(500);
+    else
+      odgovor.send(pesmi);
+  });
+})
 
 // Vrni podrobnosti o stranki iz računa
 var strankaIzRacuna = function(racunId, callback) {
     pb.all("SELECT Customer.* FROM Customer, Invoice \
             WHERE Customer.CustomerId = Invoice.CustomerId AND Invoice.InvoiceId = " + racunId,
     function(napaka, vrstice) {
-      console.log(vrstice);
+      if (napaka) {
+        callback(false);
+      } else {
+        callback(vrstice);
+      }
     })
 }
 
 // Izpis računa v HTML predstavitvi na podlagi podatkov iz baze
 streznik.post('/izpisiRacunBaza', function(zahteva, odgovor) {
-  odgovor.end();
+  var form = new formidable.IncomingForm();
+  
+  form.parse(zahteva, function (napaka1, polja, datoteke) {
+    odgovor.redirect('/racun/'+polja.seznamRacunov)
+  });
+})
+
+streznik.get('/racun/:id', function(zahteva, odgovor) {
+  pesmiIzRacuna(zahteva.params.id, function(pesmi){
+    strankaIzRacuna(zahteva.params.id, function(stranka){
+      //console.log(stranka);
+      if (!pesmi) {
+        odgovor.sendStatus(500);
+      } else {
+        odgovor.setHeader('content-type', 'text/xml');
+        odgovor.render('eslog', {
+          vizualiziraj: true,
+          postavkeRacuna: pesmi,
+          narocnik: stranka
+        })  
+      }
+    })
+  })
 })
 
 // Izpis računa v HTML predstavitvi ali izvorni XML obliki
