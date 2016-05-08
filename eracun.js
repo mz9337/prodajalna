@@ -82,15 +82,8 @@ streznik.get('/', function(zahteva, odgovor) {
 
 streznik.get('/oseba/:id', function(zahteva, odgovor) {
     zahteva.session.oseba = zahteva.params.id;
-    //zahteva.session.oseba = "miha";
     odgovor.redirect('/')
 })
-
-streznik.get('/oseba/:id', function(zahteva, odgovor) {
-     zahteva.session.oseba = zahteva.params.id;
-     //zahteva.session.oseba = "miha";
-     odgovor.redirect('/')
-  })
 
 // Dodajanje oz. brisanje pesmi iz košarice
 streznik.get('/kosarica/:idPesmi', function(zahteva, odgovor) {
@@ -293,6 +286,31 @@ var vrniRacune = function(callback) {
 }
 
 // Registracija novega uporabnika
+streznik.post('/prijava/:uspesnost', function(zahteva, odgovor) {
+  var form = new formidable.IncomingForm();
+  
+  form.parse(zahteva, function (napaka1, polja, datoteke) {
+    var napaka2 = false;
+    try {
+      console.log();
+      var stmt = pb.prepare("\
+        INSERT INTO Customer \
+    	  (FirstName, LastName, Company, \
+    	  Address, City, State, Country, PostalCode, \
+    	  Phone, Fax, Email, SupportRepId) \
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
+      //TODO: add fields and finalize
+      stmt.run(polja.FirstName, polja.LastName, polja.Company, polja.Address, polja.City, polja.State,polja.FirstName, polja.Country, polja.PostalCode, polja.Fax, polja.Email, 3); 
+      stmt.finalize();
+    } catch (err) {
+      napaka2 = true;
+      odgovor.redirect('/prijava/neuspesno');
+    }
+  
+    odgovor.redirect('/prijava/uspesno');
+  });
+})
+
 streznik.post('/prijava', function(zahteva, odgovor) {
   var form = new formidable.IncomingForm();
   
